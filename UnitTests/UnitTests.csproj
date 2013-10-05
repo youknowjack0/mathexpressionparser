@@ -7,7 +7,7 @@
     <ProjectGuid>{F8C71A1C-B719-42BA-8B19-50A3DEC391A1}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>UnitTests</RootNamespace>
+    <RootNamespace>Langman.MathExpressionParser</RootNamespace>
     <AssemblyName>UnitTests</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>

@@ -7,8 +7,8 @@
     <ProjectGuid>{50507CEF-1189-445B-BAF1-2DF0B1B98038}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MathExpressionParser</RootNamespace>
-    <AssemblyName>MathExpressionParser</AssemblyName>
+    <RootNamespace>Langman.MathExpressionParser</RootNamespace>
+    <AssemblyName>Langman.MathExpressionParser</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
