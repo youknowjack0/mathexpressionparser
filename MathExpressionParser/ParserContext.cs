@@ -24,6 +24,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace MathExpressionParser
@@ -31,11 +32,13 @@ namespace MathExpressionParser
     public class ParserContext
     {
         private NumberFormatInfo _numberFormat;
+        private Dictionary<string, Func<string, double>> _stringFunctions = new Dictionary<string, Func<string,double>>();
 
         public ParserContext(CultureInfo culture)
         {
             Culture = culture;
             NumberFormat = NumberFormatInfo.GetInstance(culture);
+            
         }
 
         public ParserContext()
@@ -56,5 +59,10 @@ namespace MathExpressionParser
         }
 
         internal char DecimalSeparator { get; set; }
+
+        /// <summary>
+        /// String functions will be passed whatever is inside the parentheses exactly as a string (trimmed)
+        /// </summary>
+        public Dictionary<string, Func<string,double>> StringFunctions { get { return _stringFunctions; } } 
     }
 }

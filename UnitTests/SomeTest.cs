@@ -24,6 +24,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 using System;
+using System.Collections.Generic;
 using MathExpressionParser;
 using NUnit.Framework;
 
@@ -209,6 +210,35 @@ namespace Langman.MathExpressionParser
             Assert.Throws<ExpressionParseException>(ParsePrintThrow(parser, "2 + 2.2.2"));
             Assert.Throws<ExpressionParseException>(ParsePrintThrow(parser, " + 2"));    
 
+        }
+
+        [Test]
+        public void StringFuncs()
+        {
+            ParserContext context = new ParserContext();
+            context.StringFunctions.Add("M", M);
+
+            ExpressionParser parser = new ExpressionParser(context);
+
+
+
+            Func<double> x = parser.Parse("M(a) + M(b)  ");
+            double expected = 1d+2d;
+            double result = x();
+            Assert.True(expected == result);
+
+            x = parser.Parse("(2 * ( M(a) * ((M  ( b)) +M(c))))");
+            expected = (2 * ( M("a") * ((M  ( "b")) +M("c"))));
+            result = x();
+            Assert.True(expected == result);
+
+        }
+
+        Dictionary<string, double> _dict = new Dictionary<string, double> { { "a", 1d }, { "b", 2d }, { "c", 3d }, { "d", 4d }, { "e", 5d }, };
+
+        private double M(string s)
+        {
+            return _dict[s];
         }
 
         private TestDelegate ParsePrintThrow(ExpressionParser parser, string s)

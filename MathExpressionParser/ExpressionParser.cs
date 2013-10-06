@@ -42,7 +42,7 @@ namespace Langman.MathExpressionParser
         {
             _allOperators = AppDomain.CurrentDomain.GetAssemblies()
                                      .SelectMany(s => s.GetTypes())
-                                     .Where(p => typeof (IBinaryOperator).IsAssignableFrom(p) && p.IsClass && !p.IsAbstract)
+                                     .Where(p => typeof (IBinaryOperator).IsAssignableFrom (p) && p.IsClass && !p.IsAbstract)
                                      .Select(Activator.CreateInstance)
                                      .Cast<IBinaryOperator>()
                                      .ToArray();
@@ -124,7 +124,7 @@ namespace Langman.MathExpressionParser
 
             if (char.IsLetter(s[o1]) || s[o1] == '_')
             {
-                operand = ParseVariable(s, ref o1, o2);
+                operand = ParseVariableOrFunction(s, ref o1, o2);
                 return true;
             }
 
@@ -171,12 +171,47 @@ namespace Langman.MathExpressionParser
             throw new ExpressionParseException("Closing ')' expected for '(' at position " + (o1 - 1), o1 - 1, "(");
         }
 
-        private Expression ParseVariable(string s, ref int o1, int o2)
+        private Expression ParseVariableOrFunction(string s, ref int o1, int o2)
         {
             int i;
-            for (i = o1; i < o2 && char.IsLetterOrDigit(s[o1]) || s[01] == '_'; i++) ;
+            for (i = o1; i < o2 && (char.IsLetterOrDigit(s[i]) || s[i] == '_'); i++) ;
+            
+            string name = s.Substring(o1, i - o1);
             o1 = i;
-            return Expression.Variable(typeof (double), s.Substring(o1, i - o1));
+
+            Func<string, double> func;
+            if (_context.StringFunctions.TryGetValue(name, out func))
+            {
+                if (func == null)
+                    throw new InvalidOperationException("A null function was provided");
+
+                string token = ParseGroupToken(s, ref o1, o2);
+
+                Expression<Func<double>> expr = () => func(token);
+                return Expression.Invoke(expr, null);
+            }
+            else
+            {
+                throw new ExpressionParseException(string.Format("Function name \"{0}\" not recognized",name),o1,name);
+                //throw new NotImplementedException();
+                //return Expression.Variable(typeof (double), name);
+            }
+        }
+
+        private string ParseGroupToken(string s, ref int o1, int o2)
+        {
+            SkipWhitespace(s, ref o1, o2);
+
+            if(s[o1] != '(')
+                throw new ExpressionParseException(string.Format("Expected '(' at {0}",o1),o1,"");
+
+            o1++;
+            int close = FindGroupEnd(s, o1, o2);
+            string token = s.Substring(o1, close - o1).Trim();
+
+            o1 = close + 1;
+
+            return token;
         }
 
         private Expression ParseConstant(string s, ref int o1, int o2)
