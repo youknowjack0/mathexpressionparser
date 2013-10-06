@@ -52,6 +52,7 @@ namespace Langman.MathExpressionParser
 
         public Func<double> Parse(string mathExpression)
         {
+            if (mathExpression == null) throw new ArgumentNullException("mathExpression");
             var exp = ParseInternal(mathExpression, 0, mathExpression.Length);
             Debug.WriteLine(mathExpression);
             Debug.WriteLine(exp.ToString());
@@ -83,7 +84,7 @@ namespace Langman.MathExpressionParser
                     break;
 
                 if (!TryReadOperand(e, ref o1, o2, out operand))
-                    throw new InvalidOperationException();
+                    throw new ExpressionParseException(string.Format("Expected an operand at character {0} on the right side of {1}", o1, @operator.Operator), o1, "");
                 operandStack.Push(operand);
             }
 
@@ -139,12 +140,35 @@ namespace Langman.MathExpressionParser
                 return true;
             }
 
-            throw new InvalidOperationException();
+            throw new ExpressionParseException(string.Format("Character {0} at position {1} is not a valid operand starting character", s[o1], o1), o1, s[o1].ToString());
         }
 
         private Expression ParseGroup(string s, ref int o1, int o2)
         {
-            throw new NotImplementedException();
+            o1++;
+            int close = FindGroupEnd(s, o1, o2);
+            var result = ParseInternal(s, o1, close);
+            o1 = close+1;
+            return result;
+        }
+
+        private int FindGroupEnd(string s, int o1, int o2)
+        {
+            int depth = 1;
+            for (int i = o1; i < o2; i++)
+            {
+                if (s[i] == '(')
+                    depth++;
+                else if (s[i] == ')')
+                {
+                    if (--depth == 0)
+                    {
+                        return i;
+                    }
+                    
+                }
+            }
+            throw new ExpressionParseException("Closing ')' expected for '(' at position " + (o1 - 1), o1 - 1, "(");
         }
 
         private Expression ParseVariable(string s, ref int o1, int o2)
@@ -166,7 +190,7 @@ namespace Langman.MathExpressionParser
             string sub = s.Substring(o1, i - o1);
             if (!double.TryParse(sub, out d))
             {
-                throw new InvalidOperationException("can't parse number " + sub);
+                throw new ExpressionParseException(string.Format("Error parsing number \"{0}\" at position {1} ",sub,s[o1]), o1, sub);
             }
             o1 = i;
             return Expression.Constant(d);
@@ -198,7 +222,7 @@ namespace Langman.MathExpressionParser
                 }
             }
 
-            throw new InvalidOperationException();
+            throw new ExpressionParseException(string.Format("Unrecognized operator \"{0}\" at position {1}",s[o1], o1), o1,s[o1].ToString());
         }
 
 

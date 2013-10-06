@@ -178,5 +178,54 @@ namespace Langman.MathExpressionParser
             Assert.True(expected == result);
 
         }
+
+        [Test]
+        public void Groups()
+        {
+            ExpressionParser parser = new ExpressionParser();
+
+
+            Func<double> x = parser.Parse("2 * (3 + 4)");
+            double expected = 2d * (3d + 4d);
+            double result = x();
+            Assert.True(expected == result);
+
+            x = parser.Parse("(((2+3)*4+(((1))))*5*(6+7)*(8*(9+10)))");
+            expected = (((2d+3d)*4d+(((1d))))*5d*(6d+7d)*(8d*(9d+10d)));
+            result = x();
+            Assert.True(expected == result);
+
+        }
+
+        [Test]
+        public void ParseExceptions()
+        {
+            
+            ExpressionParser parser = new ExpressionParser();            
+
+            Assert.Throws<ExpressionParseException>(ParsePrintThrow(parser, "2 + 3 * "));
+            Assert.Throws<ArgumentNullException>(ParsePrintThrow(parser, null));
+            Assert.Throws<ExpressionParseException>(ParsePrintThrow(parser, "~"));
+            Assert.Throws<ExpressionParseException>(ParsePrintThrow(parser, "2 + 2.2.2"));
+            Assert.Throws<ExpressionParseException>(ParsePrintThrow(parser, " + 2"));    
+
+        }
+
+        private TestDelegate ParsePrintThrow(ExpressionParser parser, string s)
+        {
+            Console.Write("\""+s+"\": ");
+            return () =>
+                {
+                    try
+                    {
+                        parser.Parse(s);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                        throw;
+                    }                    
+                };
+        }
     }
 }

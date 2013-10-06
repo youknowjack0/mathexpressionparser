@@ -41,6 +41,7 @@
   <ItemGroup>
     <Compile Include="AddOperator.cs" />
     <Compile Include="DivideOperator.cs" />
+    <Compile Include="ExpressionParseException.cs" />
     <Compile Include="IOperator.cs" />
     <Compile Include="ExpressionParser.cs" />
     <Compile Include="IBinaryOperator.cs" />
