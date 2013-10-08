@@ -27,7 +27,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace MathExpressionParser
+namespace Langman.MathExpressionParser
 {
     public class ParserContext
     {

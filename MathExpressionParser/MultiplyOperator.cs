@@ -24,7 +24,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 using System.Linq.Expressions;
-using MathExpressionParser;
 
 namespace Langman.MathExpressionParser
 {

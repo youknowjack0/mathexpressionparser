@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using System.Linq.Expressions;
 using Langman.MathExpressionParser;
 
-namespace MathExpressionParser
+namespace Langman.MathExpressionParser
 {
     internal interface IBinaryOperator : IOperator
     {
