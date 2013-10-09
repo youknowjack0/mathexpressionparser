@@ -183,7 +183,7 @@ namespace Langman.MathExpressionParser
             string name = s.Substring(o1, i - o1);
             o1 = i;
 
-            Func<string, double> func;
+            StringFunction func;
             if (_context.StringFunctions.TryGetValue(name, out func))
             {
                 if (func == null)
@@ -191,7 +191,11 @@ namespace Langman.MathExpressionParser
 
                 string token = ParseGroupToken(s, ref o1, o2);
 
-                Expression<Func<double>> expr = () => func(token);
+                //validate token
+                if(func.Validator != null && !func.Validator(token))
+                    throw new ExpressionParseException(string.Format("An invalid function token '{0}' was provided for function '{1}", token,func.FunctionName), o1, token);
+
+                Expression<Func<double>> expr = () => func.Func(token);
                 return Expression.Invoke(expr, null);
             }
             else

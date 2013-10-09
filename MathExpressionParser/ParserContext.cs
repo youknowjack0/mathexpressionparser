@@ -32,7 +32,7 @@ namespace Langman.MathExpressionParser
     public class ParserContext
     {
         private NumberFormatInfo _numberFormat;
-        private Dictionary<string, Func<string, double>> _stringFunctions = new Dictionary<string, Func<string,double>>();
+        private Dictionary<string, StringFunction> _stringFunctions = new Dictionary<string, StringFunction>();
 
         public ParserContext(CultureInfo culture)
         {
@@ -63,6 +63,46 @@ namespace Langman.MathExpressionParser
         /// <summary>
         /// String functions will be passed whatever is inside the parentheses exactly as a string (trimmed)
         /// </summary>
-        public Dictionary<string, Func<string,double>> StringFunctions { get { return _stringFunctions; } } 
+        public void AddStringFunction(StringFunction func)
+        {
+            _stringFunctions.Add(func.FunctionName,func);
+        }
+
+        public void ClearStringFunctions(StringFunction func)
+        {
+            _stringFunctions.Clear();
+        }
+
+        internal Dictionary<string, StringFunction> StringFunctions { get { return _stringFunctions; } } 
+
+    }
+
+    public class StringFunction
+    {
+        private readonly string _functionName;
+        private readonly Func<string, double> _func;
+        private readonly Func<string, bool> _validator;
+
+        public StringFunction(string functionName, Func<string, double> func, Func<string, bool> validator = null)
+        {
+            _functionName = functionName;
+            _func = func;
+            _validator = validator;
+        }
+
+        public string FunctionName
+        {
+            get { return _functionName; }
+        }
+
+        public Func<string, double> Func
+        {
+            get { return _func; }
+        }
+
+        public Func<string, bool> Validator
+        {
+            get { return _validator; }
+        }
     }
 }
