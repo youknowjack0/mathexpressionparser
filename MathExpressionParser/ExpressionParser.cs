@@ -53,11 +53,16 @@ namespace Langman.MathExpressionParser
         {
             if (mathExpression == null) throw new ArgumentNullException("mathExpression");
             var exp = ParseInternal(mathExpression, 0, mathExpression.Length);
-            Debug.WriteLine(mathExpression);
-            Debug.WriteLine(exp.ToString());
             return Expression
                 .Lambda<Func<double>>(exp)
                 .Compile();
+        }
+
+        public Expression ParseToExpression(string mathExpression)
+        {
+            if (mathExpression == null) throw new ArgumentNullException("mathExpression");
+            var exp = ParseInternal(mathExpression, 0, mathExpression.Length);
+            return exp;
         }
 
         private Expression ParseInternal(string e, int o1, int o2)
