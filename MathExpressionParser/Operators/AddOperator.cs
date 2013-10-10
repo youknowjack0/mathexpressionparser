@@ -25,12 +25,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using System;
 using System.Linq.Expressions;
-using Langman.MathExpressionParser;
 
 namespace Langman.MathExpressionParser
 {
-    internal interface IBinaryOperator : IOperator
+    internal sealed class AddOperator : IBinaryOperator
     {
-        Expression GetExpression(Expression left, Expression right);
+        public int Precedence
+        {
+            get { return 4; }
+        }
+
+        public string Operator
+        {
+            get { return "+"; }
+        }
+
+        public Expression GetExpression(Expression left, Expression right)
+        {
+            return Expression.Add(left, right);
+        }
+
     }
 }

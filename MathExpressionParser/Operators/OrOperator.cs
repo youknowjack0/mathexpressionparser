@@ -23,25 +23,27 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System;
 using System.Linq.Expressions;
 
 namespace Langman.MathExpressionParser
 {
-    internal sealed class DivideOperator : IBinaryOperator
+    internal sealed class OrOperator : IBinaryOperator
     {
         public int Precedence
         {
-            get { return 9; }
+            get { return 12; }
         }
 
         public string Operator
         {
-            get { return "/"; }
+            get { return "||"; }
         }
 
         public Expression GetExpression(Expression left, Expression right)
         {
-            return Expression.Divide(left, right);
+            return Expression.Or(left, right);
         }
+
     }
 }

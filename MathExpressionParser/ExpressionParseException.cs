@@ -12,5 +12,12 @@ namespace Langman.MathExpressionParser
             Character = character;
             Token = token;
         }
+
+        public ExpressionParseException(string message, int character, string token, Exception innerException)
+            : base(message, innerException)
+        {
+            Character = character;
+            Token = token;
+        }
     }
 }

@@ -25,7 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using System;
 using System.Collections.Generic;
-using MathExpressionParser;
 using NUnit.Framework;
 
 namespace Langman.MathExpressionParser
@@ -36,7 +35,7 @@ namespace Langman.MathExpressionParser
         [Test]
         public void Empty()
         {
-            ExpressionParser parser = new ExpressionParser();
+            ExpressionParser<double> parser = ExpressionParser.Factory.CreateMathParser();
 
             Func<double> x = parser.Parse("");
             Assert.True(x() == 0);
@@ -51,7 +50,7 @@ namespace Langman.MathExpressionParser
         [Test]
         public void Constant()
         {
-            ExpressionParser parser = new ExpressionParser();
+            ExpressionParser<double> parser = ExpressionParser.Factory.CreateMathParser();
 
             Func<double> x = parser.Parse("0");
             Assert.True(x() == 0);
@@ -74,9 +73,168 @@ namespace Langman.MathExpressionParser
         }
 
         [Test]
+        public void Equality()
+        {
+            ExpressionParser<bool> parser = ExpressionParser.Factory.CreateBooleanLogicParser();
+
+            var x = parser.Parse("2 == 1");
+            Assert.True(x() == (2 == 1));
+
+            x = parser.Parse("2== 1+1");
+            Assert.True(x() == (2 == 1+1));
+
+            x = parser.Parse("2== (1+1-1)+1-1");
+            Assert.True(x() == (2 == (1 + 1 - 1) + 1 - 1));
+        }
+
+        [Test]
+        public void LessThan()
+        {
+            ExpressionParser<bool> parser = ExpressionParser.Factory.CreateBooleanLogicParser();
+
+            var x = parser.Parse("2 < 1");
+            Assert.True(x() == (2 < 1));
+
+            x = parser.Parse("2 < 2");
+            Assert.True(x() == false);
+
+            x = parser.Parse("2 < 3");
+            Assert.True(x() == true);
+
+            x = parser.Parse("-1 <-6");
+            Assert.True(x() == false);
+
+            x = parser.Parse("-10.0001 <-10.00");
+            Assert.True(x() == true);
+
+            x = parser.Parse("10.0001 <-10.00");
+            Assert.True(x() == false);
+        }
+
+        [Test]
+        public void GreaterThan()
+        {
+            ExpressionParser<bool> parser = ExpressionParser.Factory.CreateBooleanLogicParser();
+
+            var x = parser.Parse("2 > 1");
+            Assert.True(x() == (2 > 1));
+
+            x = parser.Parse("2 > 2");
+            Assert.True(x() == false);
+
+            x = parser.Parse("2 > 3");
+            Assert.True(x() == false);
+
+            x = parser.Parse("-1 >-6");
+            Assert.True(x() == -1 > -6);
+
+            x = parser.Parse("-10.0001 >-10.00");
+            Assert.True(x() == false);
+
+            x = parser.Parse("10.0001 >-10.00");
+            Assert.True(x() == 10.0001 > -10.00);
+        }
+
+        [Test]
+        public void LogicalAnd()
+        {
+            ExpressionParser<bool> parser = ExpressionParser.Factory.CreateBooleanLogicParser();
+
+            var x = parser.Parse("2 > 1");
+            Assert.True(x() == (2 > 1));
+
+            x = parser.Parse("2 > 2");
+            Assert.True(x() == false);
+
+            x = parser.Parse("2 > 3");
+            Assert.True(x() == false);
+
+            x = parser.Parse("-1 >-6");
+            Assert.True(x() == -1 > -6);
+
+            x = parser.Parse("-10.0001 >-10.00");
+            Assert.True(x() == false);
+
+            x = parser.Parse("10.0001 >-10.00");
+            Assert.True(x() == 10.0001 > -10.00);
+        }
+
+        [Test]
+        public void LessThanOrEqualTo()
+        {
+            ExpressionParser<bool> parser = ExpressionParser.Factory.CreateBooleanLogicParser();
+
+            var x = parser.Parse("2 <= 1");
+            Assert.True(x() == (2 <= 1));
+
+            x = parser.Parse("2 <= 2");
+            Assert.True(x() == 2 <= 2);
+
+            x = parser.Parse("2 <= 3");
+            Assert.True(x() == 2 <= 3);
+
+            x = parser.Parse("-1 <=-6");
+            Assert.True(x() == -1 <= -6);
+
+            x = parser.Parse("-10.0001 <=-10.00");
+            Assert.True(x() == -10.0001 <= -10.00);
+
+            x = parser.Parse("10.0001 <=-10.00");
+            Assert.True(x() == 10.0001 <= -10.00);
+
+            x = parser.Parse("0 <=-0");
+            Assert.True(x() == 0 <= -0);
+        }
+
+
+        [Test]
+        public void GreaterThanOrEqualTo()
+        {
+            ExpressionParser<bool> parser = ExpressionParser.Factory.CreateBooleanLogicParser();
+
+            var x = parser.Parse("2 >= 1");
+            Assert.True(x() == (2 >= 1));
+
+            x = parser.Parse("2 >= 2");
+            Assert.True(x() == 2 >= 2);
+
+            x = parser.Parse("2 >= 3");
+            Assert.True(x() == 2 >= 3);
+
+            x = parser.Parse("-1 >=-6");
+            Assert.True(x() == -1 >= -6);
+
+            x = parser.Parse("-10.0001 >=-10.00");
+            Assert.True(x() == -10.0001 >= -10.00);
+
+            x = parser.Parse("10.0001 >=-10.00");
+            Assert.True(x() == 10.0001 >= -10.00);
+
+            x = parser.Parse("0 >=-0");
+            Assert.True(x() == 0 >= -0);
+        }
+
+        [Test]
+        public void BooleanLogic()
+        {
+            ExpressionParser<bool> parser = ExpressionParser.Factory.CreateBooleanLogicParser();
+
+            var x = parser.Parse("false || true && false || true && true && true || false");
+            Assert.True(x() == (false || true && false || true && true && true || false));
+
+            x = parser.Parse("(false || true) && false || (true && (true)) && true || false");
+            Assert.True(x() == ((false || true) && false || (true && (true)) && true || false));
+
+            x = parser.Parse("(1 < 2 + 3 == 4 < 5 || true) && false || (1 < (2 + 3) == 4 < 5 && (true)) &&  1 < 2*4 + 3 == (4 + 5) < 6 == 7 < 9");
+            Assert.True(x() == ((1 < 2 + 3 == 4 < 5 || true) && false || (1 < (2 + 3) == 4 < 5 && (true)) &&  1 < 2*4 + 3 == (4 + 5) < 6 == 7 < 9));
+        }
+
+
+
+        [Test]
         public void Add()
         {
-            ExpressionParser parser = new ExpressionParser();
+            ExpressionParser<double> parser = ExpressionParser.Factory.CreateMathParser();
 
             Func<double> x = parser.Parse( "0 +   0 " );
             Assert.True(x() == 0);
@@ -95,7 +253,7 @@ namespace Langman.MathExpressionParser
         [Test]
         public void Subtract()
         {
-            ExpressionParser parser = new ExpressionParser();
+            ExpressionParser<double> parser = ExpressionParser.Factory.CreateMathParser();
 
 
             Func<double> x = parser.Parse("1 - 2 - -3");
@@ -118,7 +276,7 @@ namespace Langman.MathExpressionParser
         [Test]
         public void Multiply()
         {
-            ExpressionParser parser = new ExpressionParser();
+            ExpressionParser<double> parser = ExpressionParser.Factory.CreateMathParser();
 
 
             Func<double> x = parser.Parse("1 * 2 * -3");
@@ -141,7 +299,7 @@ namespace Langman.MathExpressionParser
         [Test]
         public void Divide()
         {
-            ExpressionParser parser = new ExpressionParser();
+            ExpressionParser<double> parser = ExpressionParser.Factory.CreateMathParser();
 
 
             Func<double> x = parser.Parse("1 / 2 / -3");
@@ -165,7 +323,7 @@ namespace Langman.MathExpressionParser
         [Test]
         public void Mixed()
         {
-            ExpressionParser parser = new ExpressionParser();
+            ExpressionParser<double> parser = ExpressionParser.Factory.CreateMathParser();
 
 
             Func<double> x = parser.Parse("2 + 3 * 4");
@@ -183,7 +341,7 @@ namespace Langman.MathExpressionParser
         [Test]
         public void Groups()
         {
-            ExpressionParser parser = new ExpressionParser();
+            ExpressionParser<double> parser = ExpressionParser.Factory.CreateMathParser();
 
 
             Func<double> x = parser.Parse("2 * (3 + 4)");
@@ -201,24 +359,42 @@ namespace Langman.MathExpressionParser
         [Test]
         public void ParseExceptions()
         {
-            
-            ExpressionParser parser = new ExpressionParser();            
+
+            ExpressionParser<double> parser = ExpressionParser.Factory.CreateMathParser();
 
             Assert.Throws<ExpressionParseException>(ParsePrintThrow(parser, "2 + 3 * "));
             Assert.Throws<ArgumentNullException>(ParsePrintThrow(parser, null));
             Assert.Throws<ExpressionParseException>(ParsePrintThrow(parser, "~"));
             Assert.Throws<ExpressionParseException>(ParsePrintThrow(parser, "2 + 2.2.2"));
-            Assert.Throws<ExpressionParseException>(ParsePrintThrow(parser, " + 2"));    
+            Assert.Throws<ExpressionParseException>(ParsePrintThrow(parser, " + 2"));
 
+
+        }
+
+        [Test]
+        public void ParseExceptionsB()
+        {
+            ExpressionParser<bool> parser = ExpressionParser.Factory.CreateBooleanLogicParser();
+            Assert.Throws<ExpressionParseException>(ParsePrintThrowB(parser, "1 == 2 == 3"));
+            Assert.Throws<ExpressionParseException>(ParsePrintThrowB(parser, "1 == "));
+            Assert.Throws<ExpressionParseException>(ParsePrintThrowB(parser, "1 == true"));
+            Assert.Throws<ExpressionParseException>(ParsePrintThrowB(parser, "== true"));
+            Assert.Throws<ExpressionParseException>(ParsePrintThrowB(parser, "false + 1"));
+            Assert.Throws<ExpressionParseException>(ParsePrintThrowB(parser, "false <= true"));
+            Assert.Throws<ExpressionParseException>(ParsePrintThrowB(parser, "1 <= 2 && 3"));
+            Assert.Throws<ExpressionParseException>(ParsePrintThrowB(parser, "1 <= 2 || 3"));
+            Assert.Throws<ExpressionParseException>(ParsePrintThrowB(parser, "1 <= (2 || 3)"));
+            Assert.Throws<ExpressionParseException>(ParsePrintThrowB(parser, "1"));
+            Assert.Throws<ExpressionParseException>(ParsePrintThrowB(parser, ""));
         }
 
         [Test]
         public void StringFuncs()
         {
             ParserContext context = new ParserContext();
-            context.StringFunctions.Add("M", M);
+            context.AddStringFunction(new StringFunction("M", M));
 
-            ExpressionParser parser = new ExpressionParser(context);
+            ExpressionParser<double> parser = ExpressionParser.Factory.CreateMathParser(context);
 
 
 
@@ -232,6 +408,7 @@ namespace Langman.MathExpressionParser
             result = x();
             Assert.True(expected == result);
 
+            
         }
 
         Dictionary<string, double> _dict = new Dictionary<string, double> { { "a", 1d }, { "b", 2d }, { "c", 3d }, { "d", 4d }, { "e", 5d }, };
@@ -241,7 +418,7 @@ namespace Langman.MathExpressionParser
             return _dict[s];
         }
 
-        private TestDelegate ParsePrintThrow(ExpressionParser parser, string s)
+        private TestDelegate ParsePrintThrow(ExpressionParser<double> parser, string s)
         {
             Console.Write("\""+s+"\": ");
             return () =>
@@ -256,6 +433,23 @@ namespace Langman.MathExpressionParser
                         throw;
                     }                    
                 };
+        }
+
+        private TestDelegate ParsePrintThrowB(ExpressionParser<bool> parser, string s)
+        {
+            Console.Write("\"" + s + "\": ");
+            return () =>
+            {
+                try
+                {
+                    var x = parser.Parse(s);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    throw;
+                }
+            };
         }
     }
 }

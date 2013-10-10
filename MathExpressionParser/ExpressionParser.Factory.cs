@@ -23,14 +23,26 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Linq.Expressions;
-using Langman.MathExpressionParser;
-
 namespace Langman.MathExpressionParser
 {
-    internal interface IBinaryOperator : IOperator
+    public static class ExpressionParser
     {
-        Expression GetExpression(Expression left, Expression right);
+        public static class Factory
+       {
+           public static ExpressionParser<double> CreateMathParser(ParserContext context = null)
+           {
+               return new ExpressionParser<double>(new[]{typeof(double)}, context);
+           } 
+
+           public static ExpressionParser<bool> CreateBooleanLogicParser(ParserContext context = null)
+           {
+               return new ExpressionParser<bool>(new[] { typeof(bool), typeof(double) }, context);
+           } 
+
+           public static ExpressionParser<object> CreateParser(ParserContext context = null)
+           {
+               return new ExpressionParser<object>(new[] { typeof(bool), typeof(double) }, context);
+           } 
+       }
     }
 }

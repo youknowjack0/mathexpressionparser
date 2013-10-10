@@ -31,37 +31,63 @@ using System.Linq.Expressions;
 
 namespace Langman.MathExpressionParser
 {
-    public class ExpressionParser
+    public sealed class ExpressionParser<T>
     {
+        
+
         private readonly IBinaryOperator[] _allOperators;
         private readonly ParserContext _context;
+        private readonly char[] _operatorChars;
+        private readonly Dictionary<string, IBinaryOperator> _operatorDictionary = new Dictionary<string, IBinaryOperator>();
+        private bool _allowBoolConstants = false;
 
-
-        public ExpressionParser(ParserContext context = null)
+        internal ExpressionParser(Type[] allowableTypes, ParserContext context = null)
         {
-            _allOperators = AppDomain.CurrentDomain.GetAssemblies()
-                                     .SelectMany(s => s.GetTypes())
-                                     .Where(p => typeof (IBinaryOperator).IsAssignableFrom (p) && p.IsClass && !p.IsAbstract)
-                                     .Select(Activator.CreateInstance)
-                                     .Cast<IBinaryOperator>()
-                                     .ToArray();
+            _allOperators = GetAllOperatorsByReflection(allowableTypes);
+
+            if (allowableTypes.Contains(typeof (bool)))
+                _allowBoolConstants = true;
+
+            _operatorChars = _allOperators
+                                    .SelectMany(x => x.Operator.ToCharArray())
+                                    .Distinct()
+                                    .ToArray();
+
+            foreach (var item in _allOperators)
+                _operatorDictionary.Add(item.Operator, item);
+
+            Array.Sort(_operatorChars);
 
             _context = context ?? new ParserContext();
         }
 
-        public Func<double> Parse(string mathExpression)
+        private IBinaryOperator[] GetAllOperatorsByReflection(Type[] allowableTypes)
         {
-            if (mathExpression == null) throw new ArgumentNullException("mathExpression");
-            var exp = ParseInternal(mathExpression, 0, mathExpression.Length);
+            return AppDomain.CurrentDomain.GetAssemblies()
+                            .SelectMany(s => s.GetTypes())
+                            .Where(p => typeof (IBinaryOperator).IsAssignableFrom (p) && p.IsClass && !p.IsAbstract)
+                            .Select(Activator.CreateInstance)
+                            .Cast<IBinaryOperator>()
+                            .ToArray();
+        }
+
+
+        public Func<T> Parse(string expression)
+        {
+            if (expression == null) throw new ArgumentNullException("expression");
+            var exp = ParseInternal(expression, 0, expression.Length);
+            if (exp.Type != typeof (T))
+                throw new ExpressionParseException(
+                    String.Format("Not a {0} expression", typeof (T).Name), -1, "");
             return Expression
-                .Lambda<Func<double>>(exp)
+                .Lambda<Func<T>>(exp)
                 .Compile();
         }
 
-        public Expression ParseToExpression(string mathExpression)
+        public Expression ParseToExpression(string expression)
         {
-            if (mathExpression == null) throw new ArgumentNullException("mathExpression");
-            var exp = ParseInternal(mathExpression, 0, mathExpression.Length);
+            if (expression == null) throw new ArgumentNullException("expression");
+            var exp = ParseInternal(expression, 0, expression.Length);
             return exp;
         }
 
@@ -81,7 +107,7 @@ namespace Langman.MathExpressionParser
                 if (TryReadOperator(e, ref o1, o2, out @operator))
                 {
                     if (operatorStack.Count > 0 && @operator.Precedence >= operatorStack.Peek().Precedence)
-                        operandStack.Push(ProcessStacks(operandStack, operatorStack));
+                        operandStack.Push(ProcessStacks(operandStack, operatorStack, @operator.Precedence));
                     operatorStack.Push(@operator);
                 }
                 else
@@ -92,10 +118,10 @@ namespace Langman.MathExpressionParser
                 operandStack.Push(operand);
             }
 
-            return ProcessStacks(operandStack, operatorStack);
+            return ProcessStacks(operandStack, operatorStack, int.MaxValue);
         }
 
-        private Expression ProcessStacks(Stack<Expression> operandStack, Stack<IBinaryOperator> operatorStack)
+        private Expression ProcessStacks(Stack<Expression> operandStack, Stack<IBinaryOperator> operatorStack, int nextOperatorPrecedence)
         {
             if (operandStack.Count == 0 && operatorStack.Count == 0)
                 return Expression.Constant(0d);
@@ -107,11 +133,18 @@ namespace Langman.MathExpressionParser
 
             Expression operand1 = operandStack.Pop();
 
-            while (operatorStack.Count > 0)
+            while (operatorStack.Count > 0 && operatorStack.Peek().Precedence <= nextOperatorPrecedence)
             {
                 Expression operand2 = operandStack.Pop();
-                IBinaryOperator @operator = operatorStack.Pop();
-                operand1 = @operator.GetExpression(operand2, operand1);
+                IBinaryOperator @operator = operatorStack.Pop();                
+                try
+                {
+                    operand1 = @operator.GetExpression(operand2, operand1);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    throw new ExpressionParseException(ex.Message, -1, @operator.Operator, ex);
+                }
             }
 
             return operand1;
@@ -184,7 +217,15 @@ namespace Langman.MathExpressionParser
             o1 = i;
 
             StringFunction func;
-            if (_context.StringFunctions.TryGetValue(name, out func))
+            if (_allowBoolConstants && string.Equals(name, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                return Expression.Constant(true);
+            }
+            else if (_allowBoolConstants && string.Equals(name, "false", StringComparison.OrdinalIgnoreCase))
+            {
+                return Expression.Constant(false);
+            }
+            else if (_context.StringFunctions.TryGetValue(name, out func))
             {
                 if (func == null)
                     throw new InvalidOperationException("A null function was provided");
@@ -241,8 +282,6 @@ namespace Langman.MathExpressionParser
 
         private bool TryReadOperator(string s, ref int o1, int o2, out IBinaryOperator @operator)
         {
-            //todo: trie or something
-            //this is obviously terrible
 
             SkipWhitespace(s, ref o1, o2);
 
@@ -252,20 +291,30 @@ namespace Langman.MathExpressionParser
                 return false;
             }
 
-            foreach (IBinaryOperator op in _allOperators)
-            {
-                if (o2 - o1 < op.Operator.Length)
-                    continue;
+            string token;
+            int i;
+            for (i = o1; i < o2 && IsOperatorCharacter(s[i]); i++);
 
-                if (s.Substring(o1, op.Operator.Length) == op.Operator)
+            int len;
+            while((len = i - o1) > 0)
+            {
+                token = s.Substring(o1, len);
+                if (_operatorDictionary.TryGetValue(token, out @operator))
                 {
-                    @operator = op;
-                    o1 += op.Operator.Length;
+                    o1 = i;
                     return true;
                 }
+                i--;
             }
 
-            throw new ExpressionParseException(string.Format("Unrecognized operator \"{0}\" at position {1}",s[o1], o1), o1,s[o1].ToString());
+            throw new ExpressionParseException(string.Format("Unrecognized operator  {0} at position {1}", s[o1], o1), o1, s[o1].ToString());
+        }
+
+        private bool IsOperatorCharacter(char c)
+        {
+            if (Array.BinarySearch(_operatorChars, c) >= 0)
+                return true;
+            return false;
         }
 
 
