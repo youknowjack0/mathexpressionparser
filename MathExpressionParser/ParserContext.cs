@@ -32,23 +32,19 @@ namespace Langman.MathExpressionParser
     public class ParserContext
     {
         private NumberFormatInfo _numberFormat;
-        private Dictionary<string, StringFunction> _stringFunctions = new Dictionary<string, StringFunction>();
+        private readonly Dictionary<string, StringFunction> _stringFunctions;
 
-        public ParserContext(CultureInfo culture)
+        public ParserContext(CultureInfo culture = null, IEqualityComparer<string> stringComparer = null )
         {
-            Culture = culture;
+            Culture = culture ?? CultureInfo.CurrentCulture;
+            _stringFunctions = new Dictionary<string, StringFunction>(stringComparer ?? StringComparer.CurrentCulture);
             NumberFormat = NumberFormatInfo.GetInstance(culture);
             
         }
 
-        public ParserContext()
-        {
-            Culture = CultureInfo.CurrentCulture;
-            NumberFormat = NumberFormatInfo.GetInstance(Culture);
-        }
 
         public CultureInfo Culture { get; set; }
-        
+
         public NumberFormatInfo NumberFormat
         {
             get { return _numberFormat; }

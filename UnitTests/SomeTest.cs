@@ -411,6 +411,29 @@ namespace Langman.MathExpressionParser
             
         }
 
+        [Test]
+        public void StringFuncs2()
+        {
+            ParserContext context = new ParserContext(stringComparer: StringComparer.OrdinalIgnoreCase);
+            context.AddStringFunction(new StringFunction("M", M));
+
+            ExpressionParser<double> parser = ExpressionParser.Factory.CreateMathParser(context);
+
+
+
+            Func<double> x = parser.Parse("m(a) + M(b)  ");
+            double expected = 1d + 2d;
+            double result = x();
+            Assert.True(expected == result);
+
+            x = parser.Parse("(2 * ( M(a) * ((m  ( b)) +m(c))))");
+            expected = (2 * (M("a") * ((M("b")) + M("c"))));
+            result = x();
+            Assert.True(expected == result);
+
+
+        }
+
         Dictionary<string, double> _dict = new Dictionary<string, double> { { "a", 1d }, { "b", 2d }, { "c", 3d }, { "d", 4d }, { "e", 5d }, };
 
         private double M(string s)
