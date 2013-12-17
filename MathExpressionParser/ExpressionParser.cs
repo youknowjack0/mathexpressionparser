@@ -28,6 +28,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Langman.MathExpressionParser
 {
@@ -61,10 +62,13 @@ namespace Langman.MathExpressionParser
             _context = context ?? new ParserContext();
         }
 
+        /// <summary>
+        /// todo allow override
+        /// </summary>
         private IBinaryOperator[] GetAllOperatorsByReflection(Type[] allowableTypes)
         {
-            return AppDomain.CurrentDomain.GetAssemblies()
-                            .SelectMany(s => s.GetTypes())
+            return Assembly.GetAssembly(this.GetType())
+                            .GetTypes()
                             .Where(p => typeof (IBinaryOperator).IsAssignableFrom (p) && p.IsClass && !p.IsAbstract)
                             .Select(Activator.CreateInstance)
                             .Cast<IBinaryOperator>()
