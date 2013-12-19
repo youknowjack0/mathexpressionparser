@@ -6,9 +6,9 @@ namespace Langman.MathExpressionParser
 
     public class ParamDescriptor<TIn, TOut> : ParamDescriptor<TIn>
     {
-        private readonly Expression<Func<TIn, string, TOut>> _resolver;
+        private readonly Func<string, Expression<Func<TIn, TOut>>> _resolver;
 
-        public ParamDescriptor(string token, Expression<Func<TIn, string, TOut>> resolver, StringComparison comparison = StringComparison.OrdinalIgnoreCase) : base(token, comparison)
+        public ParamDescriptor(string token, Func<string, Expression<Func<TIn, TOut>>> resolver, StringComparison comparison = StringComparison.OrdinalIgnoreCase) : base(token, comparison)
         {
             if(resolver==null)
                 throw new ArgumentException("resolver");
@@ -17,7 +17,8 @@ namespace Langman.MathExpressionParser
 
         public override Expression Resolve(string token, ParameterExpression param)
         {
-            return Expression.Invoke(_resolver, param , Expression.Constant(token));
+            Expression<Func<TIn, TOut>> func = _resolver(token);
+            return Expression.Invoke(func, param);
         }
     }
 
