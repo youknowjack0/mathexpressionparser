@@ -42,7 +42,8 @@ namespace Langman.MathExpressionParser
         private readonly Dictionary<string, IBinaryOperator> _operatorDictionary = new Dictionary<string, IBinaryOperator>();
         private bool _allowBoolConstants = false;
 
-        protected ParamDescriptor[] Params { get; private set; }
+        protected ParamDescriptor[] ParamDescriptors { get; private set; }
+        protected ParameterExpression[] Params { get; private set; }
 
         internal ExpressionParser(Type[] allowableTypes, ParserContext context = null, ParamDescriptor[] @params = null)
         {
@@ -55,7 +56,14 @@ namespace Langman.MathExpressionParser
 
             _allOperators = GetAllOperatorsByReflection(allowableTypes);
 
-            Params = @params;
+            if (@params == null)
+                ParamDescriptors = new ParamDescriptor[0];
+            else
+                ParamDescriptors = @params;
+
+            Params = new ParameterExpression[ParamDescriptors.Length];
+            for(int i=0;i<Params.Length;i++)
+                Params[i] = Expression.Parameter(ParamDescriptors[i].Type);
 
             if (allowableTypes.Contains(typeof (bool)))
                 _allowBoolConstants = true;
@@ -99,8 +107,9 @@ namespace Langman.MathExpressionParser
                 .Compile();
         }
         
-        public Expression ParseToExpression(string expression, object[] @params = null)
+        public Expression ParseToExpression(string expression)
         {
+            
             if (expression == null) throw new ArgumentNullException("expression");
             var exp = ParseInternal(expression, 0, expression.Length);
             return exp;
@@ -228,7 +237,7 @@ namespace Langman.MathExpressionParser
             string name = ParseAlphaNumericToken(s, ref o1, o2);
 
             StringFunction func;
-            ParamDescriptor pdc;
+            int pdci;
             if (_allowBoolConstants && string.Equals(name, "true", StringComparison.OrdinalIgnoreCase))
             {
                 return Expression.Constant(true);
@@ -251,15 +260,30 @@ namespace Langman.MathExpressionParser
                 Expression<Func<double>> expr = () => func.Func(token);
                 return Expression.Invoke(expr, null);
             }
-            else if ((pdc = Params.FirstOrDefault(x => x.Token.Equals(name, x.Comparison))) != null)
+            else if ((pdci = ParamIndex(name)) >= 0)
             {
+                var pdc = ParamDescriptors[pdci];
+                var pe = Params[pdci];
                 Skip(".",s, ref o1, o2);
-                return pdc.Resolve(ParseAlphaNumericToken(s, ref o1, o2));
+                return pdc.Resolve(ParseAlphaNumericToken(s, ref o1, o2), pe);
             }
             else
             {
                 throw new ExpressionParseException(string.Format("Function name \"{0}\" not recognized",name),o1,name);
             }
+        }
+
+        private int ParamIndex(string str)
+        {
+            for (int index = 0; index < ParamDescriptors.Length; index++)
+            {
+                var item = ParamDescriptors[index];
+                if (String.Equals(str, item.Token, item.Comparison))
+                {
+                    return index;
+                }
+            }
+            return -1;
         }
 
         private string ParseAlphaNumericToken(string s, ref int o1, int o2)
@@ -280,11 +304,11 @@ namespace Langman.MathExpressionParser
             for (i = 0; o1 < o2 && i < skipstring.Length; o1++, i++)
             {
                 if(!_context.CurrentStringComparer.Equals(skipstring.Substring(i,1), s.Substring(o1,1)))
-                    throw new ExpressionParseException("Expected token '" + s + "' at position '" + original + "'", original, ".");
+                    throw new ExpressionParseException("Expected token '" + skipstring + "' at position '" + original + "'", original, ".");
             }
 
-            if(i != s.Length - 1)
-                throw new ExpressionParseException("Expected token '" + s + "' at position '" + original + "'", original, ".");
+            if (i != skipstring.Length)
+                throw new ExpressionParseException("Expected token '" + skipstring + "' at position '" + original + "'", original, ".");
         }
 
         private string ParseGroupToken(string s, ref int o1, int o2)
@@ -370,7 +394,6 @@ namespace Langman.MathExpressionParser
 
     public class ExpressionParser<T1, TResult> : ExpressionParser<TResult>
     {
-        private ParamDescriptor<T1> _param1;
 
         internal ExpressionParser(Type[] allowableTypes, ParamDescriptor<T1> p1, ParserContext context = null) 
             : base(allowableTypes, context, new ParamDescriptor[]{p1})
@@ -379,10 +402,10 @@ namespace Langman.MathExpressionParser
                 throw new ArgumentNullException("p1");
         }
 
-        public Func<T1, TResult> Parse(string expression, T1 param1)
+        public new Func<T1, TResult> Parse(string expression)
         {
-            Expression exp = base.ParseToExpression(expression, new object[] {param1});
-            return Expression.Lambda<Func<T1, TResult>>(exp).Compile();
+            Expression exp = base.ParseToExpression(expression);
+            return Expression.Lambda<Func<T1, TResult>>(exp, Params).Compile();
         }
     }
 
@@ -397,10 +420,10 @@ namespace Langman.MathExpressionParser
                 throw new ArgumentNullException("p2");
         }
 
-        public Func<T1, T2, TResult> Parse(string expression, T1 param1, T2 param2)
+        public new Func<T1, T2, TResult> Parse(string expression)
         {
-            Expression exp = base.ParseToExpression(expression, new object[] { param1 , param2 });
-            return Expression.Lambda<Func<T1, T2, TResult>>(exp).Compile();
+            Expression exp = base.ParseToExpression(expression);
+            return Expression.Lambda<Func<T1, T2, TResult>>(exp, Params).Compile();
         }
     }
 }

@@ -4,7 +4,7 @@ using System.Linq.Expressions;
 namespace Langman.MathExpressionParser
 {
 
-    public class ParamDescriptor<TOut, TIn> : ParamDescriptor<TOut>
+    public class ParamDescriptor<TIn, TOut> : ParamDescriptor<TIn>
     {
         private readonly Expression<Func<TIn, string, TOut>> _resolver;
 
@@ -15,21 +15,22 @@ namespace Langman.MathExpressionParser
             _resolver = resolver;
         }
 
-        public override Expression Resolve(string token)
+        public override Expression Resolve(string token, ParameterExpression param)
         {
-            return Expression.Invoke(_resolver,  Expression.Constant(token));
+            return Expression.Invoke(_resolver, param , Expression.Constant(token));
         }
     }
 
-    public abstract class ParamDescriptor<TOut> : ParamDescriptor
+    public abstract class ParamDescriptor<TIn> : ParamDescriptor
     {
         public ParamDescriptor(string token, StringComparison comparison = StringComparison.OrdinalIgnoreCase) : base(token, comparison)
         {
         }
 
+
         public override Type Type
         {
-            get { return typeof (TOut); }
+            get { return typeof (TIn); }
         }
     }
 
@@ -50,7 +51,9 @@ namespace Langman.MathExpressionParser
         public string Token { get { return _token; } }
         public StringComparison Comparison { get { return _comparison; } }
 
-        public abstract Expression Resolve(string token);
-        public abstract Type Type { get; }
+        public  abstract Type Type { get; }
+
+        public abstract Expression Resolve(string token, ParameterExpression param);
+
     }
 }

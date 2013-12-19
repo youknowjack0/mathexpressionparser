@@ -434,6 +434,30 @@ namespace Langman.MathExpressionParser
 
         }
 
+        [Test]
+        public void DotAccessor1()
+        {
+            ParserContext context = new ParserContext(stringComparer: StringComparer.OrdinalIgnoreCase);
+
+            ExpressionParser<Record, double> parser = ExpressionParser.Factory.CreateMathParser(new ParamDescriptor<Record,double>("Rx", (r,s) => r.Method(s)), context);
+
+            var record = new Record();
+
+            Func<Record, double> x = parser.Parse("Rx.A + rx.b  ");
+            double expected = 2d + 3d;
+            double result = x(record);
+            Assert.True(expected == result);
+
+
+
+            x = parser.Parse("(2 * ( rx.A * ((rx.B) +rx.A)))");
+            expected = (2 * (record.Method("A") * ((record.Method("b")) + record.Method("A"))));
+            result = x(record);
+            Assert.True(expected == result);
+
+
+        }
+
         Dictionary<string, double> _dict = new Dictionary<string, double> { { "a", 1d }, { "b", 2d }, { "c", 3d }, { "d", 4d }, { "e", 5d }, };
 
         private double M(string s)
@@ -473,6 +497,17 @@ namespace Langman.MathExpressionParser
                     throw;
                 }
             };
+        }
+    }
+
+    internal class Record
+    {
+        public double Method(string param)
+        {
+            if (param == "A")
+                return 2;
+            else
+                return 3;
         }
     }
 }
