@@ -32,12 +32,33 @@ namespace Langman.MathExpressionParser
            public static ExpressionParser<double> CreateMathParser(ParserContext context = null)
            {
                return new ExpressionParser<double>(new[]{typeof(double)}, context);
+           }
+
+           public static ExpressionParser<T1,double> CreateMathParser<T1>(ParamDescriptor<T1> param1, ParserContext context = null)
+           {
+               return new ExpressionParser<T1,double>(new[] { typeof(double) }, param1, context);
+           }
+
+           public static ExpressionParser<T1, T2, double> CreateMathParser<T1, T2>(ParamDescriptor<T1> param1, ParamDescriptor<T2> param2, ParserContext context = null)
+           {
+               return new ExpressionParser<T1, T2, double>(new[] { typeof(double) }, param1, param2, context);
            } 
 
            public static ExpressionParser<bool> CreateBooleanLogicParser(ParserContext context = null)
            {
                return new ExpressionParser<bool>(new[] { typeof(bool), typeof(double) }, context);
+           }
+
+           public static ExpressionParser<T1, bool> CreateBooleanLogicParser<T1>(ParamDescriptor<T1> param1, ParserContext context = null)
+           {
+               return new ExpressionParser<T1, bool>(new[] { typeof(bool) }, param1, context);
+           }
+
+           public static ExpressionParser<T1, T2, bool> CreateBooleanLogicParser<T1, T2>(ParamDescriptor<T1> param1, ParamDescriptor<T2> param2, ParserContext context = null)
+           {
+               return new ExpressionParser<T1, T2, bool>(new[] { typeof(bool) }, param1, param2, context);
            } 
+
 
            public static ExpressionParser<object> CreateParser(ParserContext context = null)
            {

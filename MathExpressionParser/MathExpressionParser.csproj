@@ -58,9 +58,11 @@
     <Compile Include="Operators\MultiplyOperator.cs" />
     <Compile Include="Operators\NotEqualsOperator.cs" />
     <Compile Include="Operators\OrOperator.cs" />
+    <Compile Include="ParamDescriptor.cs" />
     <Compile Include="ParserContext.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Operators\SubtractOperator.cs" />
+    <Compile Include="StringFunction.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="XMT.snk" />

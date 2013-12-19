@@ -32,7 +32,7 @@ using System.Reflection;
 
 namespace Langman.MathExpressionParser
 {
-    public sealed class ExpressionParser<T>
+    public class ExpressionParser<TResult>
     {
         
 
@@ -42,9 +42,20 @@ namespace Langman.MathExpressionParser
         private readonly Dictionary<string, IBinaryOperator> _operatorDictionary = new Dictionary<string, IBinaryOperator>();
         private bool _allowBoolConstants = false;
 
-        internal ExpressionParser(Type[] allowableTypes, ParserContext context = null)
+        protected ParamDescriptor[] Params { get; private set; }
+
+        internal ExpressionParser(Type[] allowableTypes, ParserContext context = null, ParamDescriptor[] @params = null)
         {
+
+            if (@params != null && context != null)
+            {
+                if (@params.Any(x => context.StringFunctions.ContainsKey(x.Token)))
+                    throw new ArgumentException("parameter has same name as a string function");
+            }
+
             _allOperators = GetAllOperatorsByReflection(allowableTypes);
+
+            Params = @params;
 
             if (allowableTypes.Contains(typeof (bool)))
                 _allowBoolConstants = true;
@@ -76,19 +87,19 @@ namespace Langman.MathExpressionParser
         }
 
 
-        public Func<T> Parse(string expression)
+        public Func<TResult> Parse(string expression)
         {
             if (expression == null) throw new ArgumentNullException("expression");
             var exp = ParseInternal(expression, 0, expression.Length);
-            if (exp.Type != typeof (T))
+            if (exp.Type != typeof (TResult))
                 throw new ExpressionParseException(
-                    String.Format("Not a {0} expression", typeof (T).Name), -1, "");
+                    String.Format("Not a {0} expression", typeof (TResult).Name), -1, "");
             return Expression
-                .Lambda<Func<T>>(exp)
+                .Lambda<Func<TResult>>(exp)
                 .Compile();
         }
-
-        public Expression ParseToExpression(string expression)
+        
+        public Expression ParseToExpression(string expression, object[] @params = null)
         {
             if (expression == null) throw new ArgumentNullException("expression");
             var exp = ParseInternal(expression, 0, expression.Length);
@@ -214,13 +225,10 @@ namespace Langman.MathExpressionParser
 
         private Expression ParseVariableOrFunction(string s, ref int o1, int o2)
         {
-            int i;
-            for (i = o1; i < o2 && (char.IsLetterOrDigit(s[i]) || s[i] == '_'); i++) ;
-            
-            string name = s.Substring(o1, i - o1);
-            o1 = i;
+            string name = ParseAlphaNumericToken(s, ref o1, o2);
 
             StringFunction func;
+            ParamDescriptor pdc;
             if (_allowBoolConstants && string.Equals(name, "true", StringComparison.OrdinalIgnoreCase))
             {
                 return Expression.Constant(true);
@@ -243,12 +251,40 @@ namespace Langman.MathExpressionParser
                 Expression<Func<double>> expr = () => func.Func(token);
                 return Expression.Invoke(expr, null);
             }
+            else if ((pdc = Params.FirstOrDefault(x => x.Token.Equals(name, x.Comparison))) != null)
+            {
+                Skip(".",s, ref o1, o2);
+                return pdc.Resolve(ParseAlphaNumericToken(s, ref o1, o2));
+            }
             else
             {
                 throw new ExpressionParseException(string.Format("Function name \"{0}\" not recognized",name),o1,name);
-                //throw new NotImplementedException();
-                //return Expression.Variable(typeof (double), name);
             }
+        }
+
+        private string ParseAlphaNumericToken(string s, ref int o1, int o2)
+        {
+            int i;
+            for (i = o1; i < o2 && (char.IsLetterOrDigit(s[i]) || s[i] == '_'); i++) ;
+
+            string name = s.Substring(o1, i - o1);
+            o1 = i;
+            return name;
+        }
+
+        private void Skip(string skipstring, string s, ref int o1, int o2)
+        {
+            int original = o1;
+
+            int i;
+            for (i = 0; o1 < o2 && i < skipstring.Length; o1++, i++)
+            {
+                if(!_context.CurrentStringComparer.Equals(skipstring.Substring(i,1), s.Substring(o1,1)))
+                    throw new ExpressionParseException("Expected token '" + s + "' at position '" + original + "'", original, ".");
+            }
+
+            if(i != s.Length - 1)
+                throw new ExpressionParseException("Expected token '" + s + "' at position '" + original + "'", original, ".");
         }
 
         private string ParseGroupToken(string s, ref int o1, int o2)
@@ -329,6 +365,42 @@ namespace Langman.MathExpressionParser
 
 
             for (; o1 < o2 && Char.IsWhiteSpace(s[o1]); o1++) ;
+        }
+    }
+
+    public class ExpressionParser<T1, TResult> : ExpressionParser<TResult>
+    {
+        private ParamDescriptor<T1> _param1;
+
+        internal ExpressionParser(Type[] allowableTypes, ParamDescriptor<T1> p1, ParserContext context = null) 
+            : base(allowableTypes, context, new ParamDescriptor[]{p1})
+        {
+            if(p1 == null)
+                throw new ArgumentNullException("p1");
+        }
+
+        public Func<T1, TResult> Parse(string expression, T1 param1)
+        {
+            Expression exp = base.ParseToExpression(expression, new object[] {param1});
+            return Expression.Lambda<Func<T1, TResult>>(exp).Compile();
+        }
+    }
+
+    public class ExpressionParser<T1, T2, TResult> : ExpressionParser<TResult>
+    {
+        internal ExpressionParser(Type[] allowableTypes, ParamDescriptor<T1> p1, ParamDescriptor<T2> p2, ParserContext context = null)
+            : base(allowableTypes, context, new ParamDescriptor[]{p1,p2})
+        {
+            if (p1 == null)
+                throw new ArgumentNullException("p1");
+            if (p2 == null)
+                throw new ArgumentNullException("p2");
+        }
+
+        public Func<T1, T2, TResult> Parse(string expression, T1 param1, T2 param2)
+        {
+            Expression exp = base.ParseToExpression(expression, new object[] { param1 , param2 });
+            return Expression.Lambda<Func<T1, T2, TResult>>(exp).Compile();
         }
     }
 }

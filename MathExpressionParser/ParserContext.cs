@@ -31,11 +31,13 @@ namespace Langman.MathExpressionParser
 {
     public class ParserContext
     {
+        private readonly IEqualityComparer<string> _stringComparer;
         private NumberFormatInfo _numberFormat;
         private readonly Dictionary<string, StringFunction> _stringFunctions;
 
         public ParserContext(CultureInfo culture = null, IEqualityComparer<string> stringComparer = null )
         {
+            _stringComparer = stringComparer;
             Culture = culture ?? CultureInfo.CurrentCulture;
             _stringFunctions = new Dictionary<string, StringFunction>(stringComparer ?? StringComparer.CurrentCulture);
             NumberFormat = NumberFormatInfo.GetInstance(culture);
@@ -69,36 +71,13 @@ namespace Langman.MathExpressionParser
             _stringFunctions.Clear();
         }
 
-        internal Dictionary<string, StringFunction> StringFunctions { get { return _stringFunctions; } } 
 
-    }
 
-    public class StringFunction
-    {
-        private readonly string _functionName;
-        private readonly Func<string, double> _func;
-        private readonly Func<string, bool> _validator;
+        internal Dictionary<string, StringFunction> StringFunctions { get { return _stringFunctions; } }
 
-        public StringFunction(string functionName, Func<string, double> func, Func<string, bool> validator = null)
+        public IEqualityComparer<string> CurrentStringComparer
         {
-            _functionName = functionName;
-            _func = func;
-            _validator = validator;
-        }
-
-        public string FunctionName
-        {
-            get { return _functionName; }
-        }
-
-        public Func<string, double> Func
-        {
-            get { return _func; }
-        }
-
-        public Func<string, bool> Validator
-        {
-            get { return _validator; }
+            get { return _stringComparer; }
         }
     }
 }
